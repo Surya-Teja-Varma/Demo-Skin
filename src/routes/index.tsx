@@ -1109,6 +1109,9 @@ function Index() {
     <>
       {showPreloader && (
         <GlowPreloader
+          onRevealStart={() => {
+            setIsReady(true);
+          }}
           onComplete={() => {
             setShowPreloader(false);
             setIsReady(true);

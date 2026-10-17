@@ -3,11 +3,13 @@ import { gsap } from "gsap";
 import { preloaderState } from "./preloader-state";
 
 interface GlowPreloaderProps {
+  /** Called when the curtain begins pulling upward, revealing the content underneath */
+  onRevealStart?: () => void;
   /** Called when the preloader has completely finished and the page animations can start */
   onComplete?: () => void;
 }
 
-export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
+export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -15,6 +17,8 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
   const footerRef = useRef<HTMLDivElement>(null);
   const barFillRef = useRef<HTMLDivElement>(null);
 
+  const onRevealStartRef = useRef(onRevealStart);
+  onRevealStartRef.current = onRevealStart;
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const hasFinishedRef = useRef(false);
@@ -23,6 +27,7 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
     // If already preloaded in this session/mount, skip immediately
     if (preloaderState.hasLoaded) {
       hasFinishedRef.current = true;
+      onRevealStartRef.current?.();
       onCompleteRef.current?.();
       return;
     }
@@ -39,6 +44,7 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
     if (prefersReducedMotion) {
       document.body.style.overflow = originalOverflow;
       hasFinishedRef.current = true;
+      onRevealStartRef.current?.();
       onCompleteRef.current?.();
       return;
     }
@@ -49,7 +55,7 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
     const flatPath = "M0 2S175 1 500 1s500 1 500 1V0H0Z";
 
     const ctx = gsap.context(() => {
-      // Master timeline: 3-4 second brand presence followed by the curved curtain lift
+      // Master timeline: completes in ~2.9s before revealing home page
       const master = gsap.timeline({
         onComplete: () => {
           document.body.style.overflow = originalOverflow;
@@ -94,6 +100,9 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
         duration: 0.32,
         attr: { d: curvePath },
         ease: "power2.inOut",
+        onStart: () => {
+          onRevealStartRef.current?.();
+        },
       });
 
       // Step B: Flatten curve to top (0.22s)
