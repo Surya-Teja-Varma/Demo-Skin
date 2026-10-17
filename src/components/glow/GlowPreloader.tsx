@@ -60,48 +60,48 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
       // Initial state
       gsap.set(pathRef.current, { attr: { d: initialPath } });
 
-      // 1. Soft, elegant entrance of the logo emblem & brand title
+      // 1. Logo is present on screen from frame 0 with subtle settle
       master.fromTo(
         contentRef.current,
-        { autoAlpha: 0, scale: 0.94, y: 15 },
-        { autoAlpha: 1, scale: 1, y: 0, duration: 0.6, ease: "power2.out" },
+        { scale: 0.95 },
+        { scale: 1, duration: 0.45, ease: "power2.out" },
       );
 
-      // 2. Pure logo presence hold (3 to 3.5 seconds on screen)
-      master.to({}, { duration: 2.8 });
+      // 2. Pure logo presence hold (1.8s)
+      master.to({}, { duration: 1.8 });
 
-      // 3. Fade out center logo and top/bottom accents (0.24s)
+      // 3. Quick fade out of center logo and top/bottom accents (0.18s)
       master.to([contentRef.current, headerRef.current, footerRef.current], {
-        y: -20,
+        y: -18,
         autoAlpha: 0,
-        duration: 0.24,
+        duration: 0.18,
         ease: "power2.in",
       });
 
       // 4. Curved SVG Curtain Morphing Reveal (Awwwards curved arch wipe)
-      // Step A: Morph bottom edge into an arc / curve pulling upward (0.42s)
+      // Step A: Morph bottom edge into an arc / curve pulling upward (0.35s)
       master.to(pathRef.current, {
-        duration: 0.42,
+        duration: 0.35,
         attr: { d: curvePath },
         ease: "power2.inOut",
       });
 
-      // Step B: Flatten curve to top (0.28s)
+      // Step B: Flatten curve to top (0.22s)
       master.to(pathRef.current, {
-        duration: 0.28,
+        duration: 0.22,
         attr: { d: flatPath },
         ease: "power2.inOut",
       });
 
-      // Step C: Slide remaining curtain out of view (0.3s)
+      // Step C: Slide remaining curtain out of view (0.24s)
       master.to(
         containerRef.current,
         {
           yPercent: -130,
-          duration: 0.3,
+          duration: 0.24,
           ease: "power3.inOut",
         },
-        "-=0.08",
+        "-=0.06",
       );
     }, containerRef);
 
