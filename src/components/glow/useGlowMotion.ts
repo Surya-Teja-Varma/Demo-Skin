@@ -222,11 +222,53 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    if (prefersReducedMotion || !isDesktop) {
-      // Mobile & reduced motion: Hero elements are 100% visible and positioned immediately.
-      // When the curtain pulls up, it reveals the hero instantly — zero blank screen, zero stutter!
+    if (prefersReducedMotion) {
       gsap.set(q("[data-hero-word], [data-hero-fade], [data-hero-img]"), { clearProps: "all" });
       return;
+    }
+
+    if (!isDesktop) {
+      // Mobile: Swift, elegant entrance for hero text, buttons, and image
+      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      tl.fromTo(
+        q("[data-hero-word]"),
+        { yPercent: 60, autoAlpha: 0 },
+        {
+          yPercent: 0,
+          autoAlpha: 1,
+          duration: 0.55,
+          stagger: 0.02,
+          clearProps: "transform,opacity,visibility",
+        },
+      )
+        .fromTo(
+          q("[data-hero-fade]"),
+          { y: 16, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.5,
+            stagger: 0.04,
+            clearProps: "transform,opacity,visibility",
+          },
+          "-=0.4",
+        )
+        .fromTo(
+          q("[data-hero-img]"),
+          { clipPath: "inset(25% 0% 0% 0% round 40px)", scale: 1.05, autoAlpha: 0 },
+          {
+            clipPath: "inset(0% 0% 0% 0% round 0px)",
+            scale: 1,
+            autoAlpha: 1,
+            duration: 0.65,
+            clearProps: "clipPath,transform,opacity,visibility",
+          },
+          "-=0.45",
+        );
+
+      return () => {
+        tl.kill();
+      };
     }
 
     // Desktop: Wait for preloader reveal before animating in
