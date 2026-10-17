@@ -32,6 +32,19 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
       onCompleteRef.current?.();
       return;
     }
+
+    const isMobile =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+
+    if (isMobile) {
+      preloaderState.hasLoaded = true;
+      hasFinishedRef.current = true;
+      if (containerRef.current) containerRef.current.style.display = "none";
+      onRevealStartRef.current?.();
+      onCompleteRef.current?.();
+      return;
+    }
+
     preloaderState.hasLoaded = true;
 
     // Lock scroll during intro
@@ -176,7 +189,7 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
       role="status"
       aria-live="polite"
       aria-label="Loading GLOW Clinic"
-      className="fixed inset-0 z-[100] flex flex-col justify-between overflow-hidden bg-transparent text-forest-foreground select-none will-change-transform"
+      className="fixed inset-0 z-[100] hidden lg:flex flex-col justify-between overflow-hidden bg-transparent text-forest-foreground select-none will-change-transform"
     >
       {/* Morphing Curved SVG Curtain Background: Pure solid #0B1E1B (no white radial haze!) */}
       <svg
