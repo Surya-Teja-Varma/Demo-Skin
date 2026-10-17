@@ -62,36 +62,36 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
       gsap.set(pathRef.current, { attr: { d: initialPath } });
       gsap.set(barFillRef.current, { scaleX: 0, transformOrigin: "left center" });
 
-      // 1. Logo is present on screen from frame 0 with subtle settle
+      // 1. Logo is present on screen from frame 0 with subtle settle (0.35s)
       master.fromTo(
         contentRef.current,
         { scale: 0.95 },
-        { scale: 1, duration: 0.4, ease: "power2.out" },
+        { scale: 1, duration: 0.35, ease: "power2.out" },
       );
 
-      // 2. Minimalist thin accent bar glides smoothly across (2.0s hold, no numbers)
+      // 2. Minimalist thin accent bar glides smoothly across (1.75s)
       master.fromTo(
         barFillRef.current,
         { scaleX: 0 },
-        { scaleX: 1, duration: 2.0, ease: "power1.inOut" },
+        { scaleX: 1, duration: 1.75, ease: "power1.inOut" },
         "-=0.1",
       );
 
-      // Micro-pause at completion
-      master.to({}, { duration: 0.05 });
+      // Micro-pause at completion (0.04s)
+      master.to({}, { duration: 0.04 });
 
-      // 3. Quick fade out of center logo and top/bottom accents (0.18s)
+      // 3. Quick fade out of center logo and top/bottom accents (0.16s)
       master.to([contentRef.current, headerRef.current, footerRef.current], {
         y: -18,
         autoAlpha: 0,
-        duration: 0.18,
+        duration: 0.16,
         ease: "power2.in",
       });
 
       // 4. Curved SVG Curtain Morphing Reveal (Awwwards curved arch wipe)
-      // Step A: Morph bottom edge into an arc / curve pulling upward (0.35s)
+      // Step A: Morph bottom edge into an arc / curve pulling upward (0.32s)
       master.to(pathRef.current, {
-        duration: 0.35,
+        duration: 0.32,
         attr: { d: curvePath },
         ease: "power2.inOut",
       });
