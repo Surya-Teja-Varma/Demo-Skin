@@ -1101,26 +1101,19 @@ function Footer() {
 function Index() {
   const ref = useRef<HTMLElement>(null);
   const [isReady, setIsReady] = useState(false);
-  const [showPreloader, setShowPreloader] = useState(true);
 
   useGlowMotion(ref, { isReady });
 
   return (
     <>
-      {showPreloader && (
-        <GlowPreloader
-          onRevealStart={() => {
-            setIsReady(true);
-          }}
-          onComplete={() => {
-            setShowPreloader(false);
-            setIsReady(true);
-            requestAnimationFrame(() => {
-              window.dispatchEvent(new Event("resize"));
-            });
-          }}
-        />
-      )}
+      <GlowPreloader
+        onRevealStart={() => {
+          setIsReady(true);
+        }}
+        onComplete={() => {
+          setIsReady(true);
+        }}
+      />
       <Nav />
       <main ref={ref}>
         <Hero />

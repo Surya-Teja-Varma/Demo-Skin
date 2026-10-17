@@ -9,7 +9,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
  *  data-reveal        – fade/slide up on enter
  *  data-clip="left|right|up|down" – clip-path image wipe on enter (+ inner img scale)
  *  data-parallax="n"  – scrubbed vertical drift (yPercent n), desktop only
- *  data-stagger       – children stagger in on enter
+ *  data-stagger       – children cascade in as section enters
  *  data-tilt          – restrained 3D rotateX settle on scroll (desktop)
  *  data-progress      – scaleX scrubbed by section scroll
  *  data-words-scrub   – words inside light up as you scroll
@@ -23,11 +23,11 @@ export interface GlowMotionOptions {
 export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: GlowMotionOptions) {
   const isReady = options?.isReady ?? true;
 
+  // 1. Core Scroll Triggers & Page Motion (Initialized ONCE on mount — never torn down or thrashed)
   useEffect(() => {
     if (!scope.current) return;
     gsap.registerPlugin(ScrollTrigger);
 
-    // Prevent mobile URL-bar resize events from causing stutter / frame-rate drops
     ScrollTrigger.config({
       ignoreMobileResize: true,
       autoRefreshEvents: "visibilitychange,DOMContentLoaded,load",
@@ -45,81 +45,23 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
         if (!motion) return;
         const q = gsap.utils.selector(scope.current);
 
-        // Hero intro & page animations:
-        if (desktop) {
-          // Desktop: cinematic editorial entrance synchronized with reveal
-          if (!isReady) {
-            gsap.set(q("[data-hero-word]"), { yPercent: 110, rotate: 3, autoAlpha: 0 });
-            gsap.set(q("[data-hero-fade]"), { y: 20, autoAlpha: 0 });
-            gsap.set(q("[data-hero-img]"), {
-              clipPath: "inset(100% 0% 0% 0% round 200px)",
-              scale: 1.15,
-              autoAlpha: 0,
-            });
-            return;
-          }
-
-          const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-          tl.fromTo(
-            q("[data-hero-word]"),
-            { yPercent: 110, rotate: 3, autoAlpha: 0 },
-            {
-              yPercent: 0,
-              rotate: 0,
-              autoAlpha: 1,
-              duration: 0.85,
-              stagger: 0.035,
-              clearProps: "transform,opacity,visibility",
-            },
-          )
-            .fromTo(
-              q("[data-hero-fade]"),
-              { y: 20, autoAlpha: 0 },
-              {
-                y: 0,
-                autoAlpha: 1,
-                duration: 0.65,
-                stagger: 0.05,
-                clearProps: "transform,opacity,visibility",
-              },
-              "-=0.7",
-            )
-            .fromTo(
-              q("[data-hero-img]"),
-              { clipPath: "inset(100% 0% 0% 0% round 200px)", scale: 1.1, autoAlpha: 0 },
-              {
-                clipPath: "inset(0% 0% 0% 0% round 0px)",
-                scale: 1,
-                autoAlpha: 1,
-                duration: 0.95,
-                ease: "expo.out",
-                clearProps: "clipPath,transform,opacity,visibility",
-              },
-              0,
-            );
-        } else {
-          // Mobile: Hero is 100% visible and in place behind the preloader curtain!
-          // When the curtain pulls up, the page is revealed instantly — NO blank screen, NO staggering!
-          gsap.set(q("[data-hero-word], [data-hero-fade], [data-hero-img]"), {
-            clearProps: "all",
-          });
-        }
-
+        // Section Heading & Element Reveals
         q("[data-reveal]").forEach((el) =>
           gsap.from(el, {
-            y: desktop ? 45 : 12,
+            y: desktop ? 45 : 18,
             autoAlpha: 0,
-            duration: desktop ? 0.85 : 0.35,
+            duration: desktop ? 0.85 : 0.5,
             ease: desktop ? "power3.out" : "power2.out",
             clearProps: "transform,opacity,visibility",
             scrollTrigger: {
               trigger: el,
-              start: desktop ? "top 88%" : "top 96%",
+              start: desktop ? "top 88%" : "top 88%",
               once: true,
             },
           }),
         );
 
+        // Image Clip-path Wipes
         const clips: Record<string, string> = {
           left: "inset(0% 100% 0% 0%)",
           right: "inset(0% 0% 0% 100%)",
@@ -131,13 +73,13 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
           const t = gsap.timeline({
             scrollTrigger: {
               trigger: el,
-              start: desktop ? "top 85%" : "top 96%",
+              start: desktop ? "top 85%" : "top 86%",
               once: true,
             },
           });
           t.from(el, {
             clipPath: clips[dir] ?? clips["up"]!,
-            duration: desktop ? 1.1 : 0.45,
+            duration: desktop ? 1.1 : 0.6,
             ease: desktop ? "expo.inOut" : "power2.out",
             clearProps: "clipPath",
           });
@@ -146,8 +88,8 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
             t.from(
               img,
               {
-                scale: desktop ? 1.25 : 1.03,
-                duration: desktop ? 1.3 : 0.45,
+                scale: desktop ? 1.25 : 1.04,
+                duration: desktop ? 1.3 : 0.6,
                 ease: desktop ? "expo.out" : "power2.out",
                 clearProps: "transform",
               },
@@ -156,57 +98,45 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
           }
         });
 
-        q("[data-stagger]").forEach((el) => {
-          if (desktop) {
-            // Desktop: multi-column layout with refined cascade
-            gsap.from(el.children, {
-              y: 60,
-              autoAlpha: 0,
-              rotateX: -12,
-              transformPerspective: 900,
-              duration: 0.85,
-              stagger: 0.08,
-              ease: "power3.out",
-              clearProps: "transform,opacity,visibility",
-              scrollTrigger: { trigger: el, start: "top 82%", once: true },
-            });
-          } else {
-            // Mobile: vertical 1-column stack. Each card smoothly appears as it touches the viewport
-            Array.from(el.children).forEach((child) => {
-              gsap.from(child, {
-                y: 14,
-                autoAlpha: 0,
-                duration: 0.35,
-                ease: "power2.out",
-                clearProps: "transform,opacity,visibility",
-                scrollTrigger: {
-                  trigger: child,
-                  start: "top 96%",
-                  once: true,
-                },
-              });
-            });
-          }
-        });
+        // Group / Card Staggers: Section container triggers the cascade smoothly
+        q("[data-stagger]").forEach((el) =>
+          gsap.from(el.children, {
+            y: desktop ? 60 : 20,
+            autoAlpha: 0,
+            rotateX: desktop ? -12 : 0,
+            transformPerspective: 900,
+            duration: desktop ? 0.85 : 0.55,
+            stagger: desktop ? 0.08 : 0.04,
+            ease: desktop ? "power3.out" : "power2.out",
+            clearProps: "transform,opacity,visibility",
+            scrollTrigger: {
+              trigger: el,
+              start: desktop ? "top 82%" : "top 86%",
+              once: true,
+            },
+          }),
+        );
 
+        // Word-by-word Scrub
         q("[data-words-scrub]").forEach((el) =>
           gsap.fromTo(
             el.querySelectorAll("span"),
             { opacity: 0.18 },
             {
               opacity: 1,
-              stagger: desktop ? 0.1 : 0.06,
+              stagger: desktop ? 0.1 : 0.05,
               ease: "none",
               scrollTrigger: {
                 trigger: el,
                 start: desktop ? "top 80%" : "top 85%",
                 end: "bottom 45%",
-                scrub: true,
+                scrub: desktop ? true : 0.4,
               },
             },
           ),
         );
 
+        // Section Progress Line
         q("[data-progress]").forEach((el) =>
           gsap.fromTo(
             el,
@@ -224,6 +154,7 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
           ),
         );
 
+        // Desktop-only Features (Parallax & Tilt)
         if (desktop) {
           q("[data-parallax]").forEach((el) => {
             const amt = parseFloat(el.getAttribute("data-parallax") || "10");
@@ -252,7 +183,6 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
           );
         }
 
-        // Recalculate ScrollTrigger start/end marks cleanly for the active layout
         requestAnimationFrame(() => {
           ScrollTrigger.refresh();
         });
@@ -274,22 +204,85 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
     };
     if (fine && layers.length) window.addEventListener("pointermove", onMove);
 
-    // Debounced trigger recalculation when fonts or layout settle
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-    const ro = new ResizeObserver(() => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        ScrollTrigger.refresh();
-      }, 250);
-    });
-    ro.observe(scope.current);
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
     return () => {
-      clearTimeout(resizeTimer);
-      ro.disconnect();
       window.removeEventListener("pointermove", onMove);
       mm.revert();
+    };
+  }, [scope]);
+
+  // 2. Hero Intro: On Mobile, visible from frame 0 behind the opaque curtain. On Desktop, editorial entrance when ready.
+  useEffect(() => {
+    if (!scope.current) return;
+    const q = gsap.utils.selector(scope.current);
+    const isDesktop =
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion || !isDesktop) {
+      // Mobile & reduced motion: Hero elements are 100% visible and positioned immediately.
+      // When the curtain pulls up, it reveals the hero instantly — zero blank screen, zero stutter!
+      gsap.set(q("[data-hero-word], [data-hero-fade], [data-hero-img]"), { clearProps: "all" });
+      return;
+    }
+
+    // Desktop: Wait for preloader reveal before animating in
+    if (!isReady) {
+      gsap.set(q("[data-hero-word]"), { yPercent: 110, rotate: 3, autoAlpha: 0 });
+      gsap.set(q("[data-hero-fade]"), { y: 20, autoAlpha: 0 });
+      gsap.set(q("[data-hero-img]"), {
+        clipPath: "inset(100% 0% 0% 0% round 200px)",
+        scale: 1.15,
+        autoAlpha: 0,
+      });
+      return;
+    }
+
+    // Desktop intro animation
+    const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+    tl.fromTo(
+      q("[data-hero-word]"),
+      { yPercent: 110, rotate: 3, autoAlpha: 0 },
+      {
+        yPercent: 0,
+        rotate: 0,
+        autoAlpha: 1,
+        duration: 0.85,
+        stagger: 0.035,
+        clearProps: "transform,opacity,visibility",
+      },
+    )
+      .fromTo(
+        q("[data-hero-fade]"),
+        { y: 20, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.65,
+          stagger: 0.05,
+          clearProps: "transform,opacity,visibility",
+        },
+        "-=0.7",
+      )
+      .fromTo(
+        q("[data-hero-img]"),
+        { clipPath: "inset(100% 0% 0% 0% round 200px)", scale: 1.1, autoAlpha: 0 },
+        {
+          clipPath: "inset(0% 0% 0% 0% round 0px)",
+          scale: 1,
+          autoAlpha: 1,
+          duration: 0.95,
+          ease: "expo.out",
+          clearProps: "clipPath,transform,opacity,visibility",
+        },
+        0,
+      );
+
+    return () => {
+      tl.kill();
     };
   }, [scope, isReady]);
 }

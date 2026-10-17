@@ -27,6 +27,7 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
     // If already preloaded in this session/mount, skip immediately
     if (preloaderState.hasLoaded) {
       hasFinishedRef.current = true;
+      if (containerRef.current) containerRef.current.style.display = "none";
       onRevealStartRef.current?.();
       onCompleteRef.current?.();
       return;
@@ -44,6 +45,7 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
     if (prefersReducedMotion) {
       document.body.style.overflow = originalOverflow;
       hasFinishedRef.current = true;
+      if (containerRef.current) containerRef.current.style.display = "none";
       onRevealStartRef.current?.();
       onCompleteRef.current?.();
       return;
@@ -55,11 +57,14 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
     const flatPath = "M0 2S175 1 500 1s500 1 500 1V0H0Z";
 
     const ctx = gsap.context(() => {
-      // Master timeline: completes in ~2.9s before revealing home page
+      // Master timeline: completes in ~2.95s before revealing home page
       const master = gsap.timeline({
         onComplete: () => {
           document.body.style.overflow = originalOverflow;
           hasFinishedRef.current = true;
+          if (containerRef.current) {
+            containerRef.current.style.display = "none";
+          }
           onCompleteRef.current?.();
         },
       });
@@ -101,6 +106,9 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
         attr: { d: curvePath },
         ease: "power2.inOut",
         onStart: () => {
+          if (containerRef.current) {
+            containerRef.current.style.pointerEvents = "none";
+          }
           onRevealStartRef.current?.();
         },
       });
@@ -119,6 +127,11 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
           yPercent: -130,
           duration: 0.24,
           ease: "power3.inOut",
+          onComplete: () => {
+            if (containerRef.current) {
+              containerRef.current.style.display = "none";
+            }
+          },
         },
         "-=0.06",
       );
@@ -130,6 +143,10 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
         hasFinishedRef.current = true;
         ctx.revert();
         document.body.style.overflow = originalOverflow;
+        if (containerRef.current) {
+          containerRef.current.style.display = "none";
+        }
+        onRevealStartRef.current?.();
         onCompleteRef.current?.();
       }
     };
@@ -146,6 +163,10 @@ export function GlowPreloader({ onRevealStart, onComplete }: GlowPreloaderProps)
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
     document.body.style.overflow = "";
+    if (containerRef.current) {
+      containerRef.current.style.display = "none";
+    }
+    onRevealStartRef.current?.();
     onCompleteRef.current?.();
   };
 
