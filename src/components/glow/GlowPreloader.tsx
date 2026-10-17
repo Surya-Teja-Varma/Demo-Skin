@@ -13,6 +13,7 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const barFillRef = useRef<HTMLDivElement>(null);
 
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -59,16 +60,25 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
 
       // Initial state
       gsap.set(pathRef.current, { attr: { d: initialPath } });
+      gsap.set(barFillRef.current, { scaleX: 0, transformOrigin: "left center" });
 
       // 1. Logo is present on screen from frame 0 with subtle settle
       master.fromTo(
         contentRef.current,
         { scale: 0.95 },
-        { scale: 1, duration: 0.45, ease: "power2.out" },
+        { scale: 1, duration: 0.4, ease: "power2.out" },
       );
 
-      // 2. Pure logo presence hold (1.8s)
-      master.to({}, { duration: 1.8 });
+      // 2. Minimalist thin accent bar glides smoothly across (2.0s hold, no numbers)
+      master.fromTo(
+        barFillRef.current,
+        { scaleX: 0 },
+        { scaleX: 1, duration: 2.0, ease: "power1.inOut" },
+        "-=0.1",
+      );
+
+      // Micro-pause at completion
+      master.to({}, { duration: 0.05 });
 
       // 3. Quick fade out of center logo and top/bottom accents (0.18s)
       master.to([contentRef.current, headerRef.current, footerRef.current], {
@@ -268,6 +278,17 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
         <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.38em] text-mint/80 sm:text-xs">
           Skin & Hair Clinic
         </p>
+
+        {/* Minimalist Thin Accent Bar (No percentage count, no numbers) */}
+        <div className="mt-5 w-28 sm:w-36">
+          <div className="relative h-[1.5px] w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              ref={barFillRef}
+              className="h-full w-full rounded-full bg-turquoise shadow-[0_0_8px_rgba(92,229,192,0.6)]"
+              style={{ transform: "scaleX(0)", transformOrigin: "left center" }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Bottom Footer Details */}
