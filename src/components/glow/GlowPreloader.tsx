@@ -7,22 +7,12 @@ interface GlowPreloaderProps {
   onComplete?: () => void;
 }
 
-const PHASES = [
-  { at: 0, text: "Nurturing skin & hair science" },
-  { at: 35, text: "Calibrating clinical precision" },
-  { at: 70, text: "Preparing your radiant experience" },
-  { at: 98, text: "Welcome to GLOW" },
-];
-
 export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  const progressFillRef = useRef<HTMLDivElement>(null);
-  const counterRef = useRef<HTMLSpanElement>(null);
-  const statusRef = useRef<HTMLParagraphElement>(null);
 
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -58,10 +48,7 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
     const flatPath = "M0 2S175 1 500 1s500 1 500 1V0H0Z";
 
     const ctx = gsap.context(() => {
-      const progressObj = { val: 0 };
-      let lastPhaseIdx = 0;
-
-      // Master timeline: fast, snappy, single-pass
+      // Master timeline: 3-4 second brand presence followed by the curved curtain lift
       const master = gsap.timeline({
         onComplete: () => {
           document.body.style.overflow = originalOverflow;
@@ -70,71 +57,51 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
         },
       });
 
-      // Initial state: Logo and bar are already 100% visible on screen — NO hiding, NO double-loading!
+      // Initial state
       gsap.set(pathRef.current, { attr: { d: initialPath } });
-      gsap.set(progressFillRef.current, { scaleX: 0, transformOrigin: "left center" });
 
-      // 1. Fast Progress Counter (0% -> 100% in 0.72s)
-      master.to(progressObj, {
-        val: 100,
-        duration: 0.72,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          const current = Math.round(progressObj.val);
-          if (counterRef.current) {
-            counterRef.current.textContent = `${current.toString().padStart(2, "0")}%`;
-          }
-          if (progressFillRef.current) {
-            progressFillRef.current.style.transform = `scaleX(${progressObj.val / 100})`;
-          }
+      // 1. Soft, elegant entrance of the logo emblem & brand title
+      master.fromTo(
+        contentRef.current,
+        { autoAlpha: 0, scale: 0.94, y: 15 },
+        { autoAlpha: 1, scale: 1, y: 0, duration: 0.6, ease: "power2.out" },
+      );
 
-          let nextPhase = 0;
-          if (current >= 98) nextPhase = 3;
-          else if (current >= 70) nextPhase = 2;
-          else if (current >= 35) nextPhase = 1;
+      // 2. Pure logo presence hold (3 to 3.5 seconds on screen)
+      master.to({}, { duration: 2.8 });
 
-          if (nextPhase !== lastPhaseIdx && statusRef.current) {
-            lastPhaseIdx = nextPhase;
-            statusRef.current.textContent = PHASES[nextPhase]?.text ?? "";
-          }
-        },
-      });
-
-      // 2. Brief micro-settle at 100%
-      master.to({}, { duration: 0.04 });
-
-      // 3. Fade out center text and logo quickly (0.14s)
+      // 3. Fade out center logo and top/bottom accents (0.24s)
       master.to([contentRef.current, headerRef.current, footerRef.current], {
-        y: -25,
+        y: -20,
         autoAlpha: 0,
-        duration: 0.14,
+        duration: 0.24,
         ease: "power2.in",
       });
 
       // 4. Curved SVG Curtain Morphing Reveal (Awwwards curved arch wipe)
-      // Step A: Morph bottom edge into an arc / curve pulling upward (0.34s)
+      // Step A: Morph bottom edge into an arc / curve pulling upward (0.42s)
       master.to(pathRef.current, {
-        duration: 0.34,
+        duration: 0.42,
         attr: { d: curvePath },
         ease: "power2.inOut",
       });
 
-      // Step B: Flatten curve to top (0.24s)
+      // Step B: Flatten curve to top (0.28s)
       master.to(pathRef.current, {
-        duration: 0.24,
+        duration: 0.28,
         attr: { d: flatPath },
         ease: "power2.inOut",
       });
 
-      // Step C: Slide remaining curtain out of view (0.26s)
+      // Step C: Slide remaining curtain out of view (0.3s)
       master.to(
         containerRef.current,
         {
           yPercent: -130,
-          duration: 0.26,
+          duration: 0.3,
           ease: "power3.inOut",
         },
-        "-=0.06",
+        "-=0.08",
       );
     }, containerRef);
 
@@ -298,35 +265,9 @@ export function GlowPreloader({ onComplete }: GlowPreloaderProps) {
         <h1 className="font-display text-4xl tracking-[0.22em] text-[#E8FDF7] drop-shadow-[0_2px_12px_rgba(92,229,192,0.15)] sm:text-5xl">
           GLOW
         </h1>
-        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.38em] text-mint/80 sm:text-[11px]">
+        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.38em] text-mint/80 sm:text-xs">
           Skin & Hair Clinic
         </p>
-
-        {/* Minimal Progress Track (Pure turquoise, no white gradient!) */}
-        <div className="mt-8 w-full max-w-[260px] sm:max-w-[280px]">
-          <div className="relative h-[2px] w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              ref={progressFillRef}
-              className="h-full w-full rounded-full bg-turquoise shadow-[0_0_8px_rgba(92,229,192,0.7)]"
-            />
-          </div>
-
-          {/* Counter & Micro-status */}
-          <div className="mt-3.5 flex items-center justify-between text-xs">
-            <p
-              ref={statusRef}
-              className="text-[11px] font-medium tracking-wide text-forest-foreground/75 truncate pr-2"
-            >
-              {PHASES[0].text}
-            </p>
-            <span
-              ref={counterRef}
-              className="font-mono text-xs font-semibold tabular-nums text-turquoise shrink-0"
-            >
-              00%
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Bottom Footer Details */}

@@ -26,6 +26,13 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
   useEffect(() => {
     if (!scope.current) return;
     gsap.registerPlugin(ScrollTrigger);
+
+    // Prevent mobile URL-bar resize events from causing stutter / frame-rate drops
+    ScrollTrigger.config({
+      ignoreMobileResize: true,
+      autoRefreshEvents: "visibilitychange,DOMContentLoaded,load",
+    });
+
     const mm = gsap.matchMedia();
 
     mm.add(
@@ -40,54 +47,111 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
 
         // Hero intro & page animations: wait until preloader is completely finished
         if (!isReady) {
-          gsap.set(q("[data-hero-word]"), { yPercent: 110, rotate: 4 });
-          gsap.set(q("[data-hero-fade]"), { y: 24, autoAlpha: 0 });
+          gsap.set(q("[data-hero-word]"), {
+            yPercent: desktop ? 110 : 50,
+            rotate: desktop ? 3 : 0,
+            autoAlpha: desktop ? 1 : 0,
+          });
+          gsap.set(q("[data-hero-fade]"), { y: desktop ? 20 : 12, autoAlpha: 0 });
           gsap.set(q("[data-hero-img]"), {
-            clipPath: "inset(100% 0% 0% 0% round 200px)",
-            scale: 1.15,
+            clipPath: desktop
+              ? "inset(100% 0% 0% 0% round 200px)"
+              : "inset(35% 0% 0% 0% round 60px)",
+            scale: desktop ? 1.15 : 1.05,
+            autoAlpha: 0,
           });
           return;
         }
 
         // Hero intro & page animations: start immediately once preloader is finished
         const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-        tl.fromTo(
-          q("[data-hero-word]"),
-          { yPercent: 110, rotate: 3 },
-          { yPercent: 0, rotate: 0, duration: 0.85, stagger: 0.035, clearProps: "transform" },
-        )
-          .fromTo(
-            q("[data-hero-fade]"),
-            { y: 20, autoAlpha: 0 },
+
+        if (desktop) {
+          // Desktop: cinematic editorial entrance
+          tl.fromTo(
+            q("[data-hero-word]"),
+            { yPercent: 110, rotate: 3 },
+            { yPercent: 0, rotate: 0, duration: 0.85, stagger: 0.035, clearProps: "transform" },
+          )
+            .fromTo(
+              q("[data-hero-fade]"),
+              { y: 20, autoAlpha: 0 },
+              {
+                y: 0,
+                autoAlpha: 1,
+                duration: 0.65,
+                stagger: 0.05,
+                clearProps: "transform,opacity,visibility",
+              },
+              "-=0.7",
+            )
+            .fromTo(
+              q("[data-hero-img]"),
+              { clipPath: "inset(100% 0% 0% 0% round 200px)", scale: 1.1, autoAlpha: 0 },
+              {
+                clipPath: "inset(0% 0% 0% 0% round 0px)",
+                scale: 1,
+                autoAlpha: 1,
+                duration: 0.95,
+                ease: "expo.out",
+                clearProps: "clipPath,transform",
+              },
+              0,
+            );
+        } else {
+          // Mobile: Snappy, unified, buttery entrance without 0.5x staircasing
+          tl.fromTo(
+            q("[data-hero-word]"),
+            { yPercent: 50, autoAlpha: 0 },
             {
-              y: 0,
+              yPercent: 0,
               autoAlpha: 1,
-              duration: 0.65,
-              stagger: 0.05,
+              duration: 0.5,
+              stagger: 0.015,
+              ease: "power2.out",
               clearProps: "transform,opacity,visibility",
             },
-            "-=0.7",
           )
-          .fromTo(
-            q("[data-hero-img]"),
-            { clipPath: "inset(100% 0% 0% 0% round 200px)", scale: 1.1 },
-            {
-              clipPath: "inset(0% 0% 0% 0% round 0px)",
-              scale: 1,
-              duration: 0.95,
-              ease: "expo.out",
-              clearProps: "clipPath,transform",
-            },
-            0,
-          );
+            .fromTo(
+              q("[data-hero-fade]"),
+              { y: 12, autoAlpha: 0 },
+              {
+                y: 0,
+                autoAlpha: 1,
+                duration: 0.45,
+                stagger: 0.02,
+                ease: "power2.out",
+                clearProps: "transform,opacity,visibility",
+              },
+              "-=0.35",
+            )
+            .fromTo(
+              q("[data-hero-img]"),
+              { clipPath: "inset(35% 0% 0% 0% round 60px)", scale: 1.05, autoAlpha: 0 },
+              {
+                clipPath: "inset(0% 0% 0% 0% round 0px)",
+                scale: 1,
+                autoAlpha: 1,
+                duration: 0.55,
+                ease: "power2.out",
+                clearProps: "clipPath,transform,opacity,visibility",
+              },
+              "-=0.3",
+            );
+        }
 
         q("[data-reveal]").forEach((el) =>
           gsap.from(el, {
-            y: 50,
+            y: desktop ? 45 : 18,
             autoAlpha: 0,
-            duration: 1,
-            ease: "power3.out",
-            scrollTrigger: { trigger: el, start: "top 88%", once: true },
+            duration: desktop ? 0.85 : 0.45,
+            ease: desktop ? "power3.out" : "power2.out",
+            clearProps: "transform,opacity,visibility",
+            scrollTrigger: {
+              trigger: el,
+              start: desktop ? "top 88%" : "top 92%",
+              once: true,
+            },
           }),
         );
 
@@ -99,25 +163,66 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
         };
         q("[data-clip]").forEach((el) => {
           const dir = el.getAttribute("data-clip") || "up";
-          const t = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 85%", once: true } });
-          t.from(el, { clipPath: clips[dir] ?? clips["up"]!, duration: 1.3, ease: "expo.inOut" });
+          const t = gsap.timeline({
+            scrollTrigger: {
+              trigger: el,
+              start: desktop ? "top 85%" : "top 90%",
+              once: true,
+            },
+          });
+          t.from(el, {
+            clipPath: clips[dir] ?? clips["up"]!,
+            duration: desktop ? 1.1 : 0.55,
+            ease: desktop ? "expo.inOut" : "power2.out",
+            clearProps: "clipPath",
+          });
           const img = el.querySelector("img");
-          if (img) t.from(img, { scale: 1.3, duration: 1.6, ease: "expo.out" }, 0.1);
+          if (img) {
+            t.from(
+              img,
+              {
+                scale: desktop ? 1.25 : 1.06,
+                duration: desktop ? 1.3 : 0.65,
+                ease: desktop ? "expo.out" : "power2.out",
+                clearProps: "transform",
+              },
+              0.05,
+            );
+          }
         });
 
-        q("[data-stagger]").forEach((el) =>
-          gsap.from(el.children, {
-            y: 70,
-            autoAlpha: 0,
-            rotateX: desktop ? -12 : 0,
-            transformPerspective: 900,
-            duration: 1,
-            stagger: 0.12,
-            ease: "power3.out",
-            clearProps: "transform,opacity,visibility",
-            scrollTrigger: { trigger: el, start: "top 82%", once: true },
-          }),
-        );
+        q("[data-stagger]").forEach((el) => {
+          if (desktop) {
+            // Desktop: multi-column layout with refined cascade
+            gsap.from(el.children, {
+              y: 60,
+              autoAlpha: 0,
+              rotateX: -12,
+              transformPerspective: 900,
+              duration: 0.85,
+              stagger: 0.08,
+              ease: "power3.out",
+              clearProps: "transform,opacity,visibility",
+              scrollTrigger: { trigger: el, start: "top 82%", once: true },
+            });
+          } else {
+            // Mobile: vertical 1-column stack. Animate each child individually when it enters view!
+            Array.from(el.children).forEach((child) => {
+              gsap.from(child, {
+                y: 20,
+                autoAlpha: 0,
+                duration: 0.45,
+                ease: "power2.out",
+                clearProps: "transform,opacity,visibility",
+                scrollTrigger: {
+                  trigger: child,
+                  start: "top 92%",
+                  once: true,
+                },
+              });
+            });
+          }
+        });
 
         q("[data-words-scrub]").forEach((el) =>
           gsap.fromTo(
@@ -125,9 +230,14 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
             { opacity: 0.18 },
             {
               opacity: 1,
-              stagger: 0.1,
+              stagger: desktop ? 0.1 : 0.06,
               ease: "none",
-              scrollTrigger: { trigger: el, start: "top 80%", end: "bottom 45%", scrub: true },
+              scrollTrigger: {
+                trigger: el,
+                start: desktop ? "top 80%" : "top 85%",
+                end: "bottom 45%",
+                scrub: true,
+              },
             },
           ),
         );
@@ -176,6 +286,11 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
             ),
           );
         }
+
+        // Recalculate ScrollTrigger start/end marks cleanly for the active layout
+        requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
       },
     );
 
@@ -194,18 +309,20 @@ export function useGlowMotion(scope: RefObject<HTMLElement | null>, options?: Gl
     };
     if (fine && layers.length) window.addEventListener("pointermove", onMove);
 
-    // Recalculate trigger positions as fonts/lazy images change layout
-    let raf = 0;
+    // Debounced trigger recalculation when fonts or layout settle
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
     const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => ScrollTrigger.refresh());
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 250);
     });
     ro.observe(scope.current);
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
     return () => {
+      clearTimeout(resizeTimer);
       ro.disconnect();
-      cancelAnimationFrame(raf);
       window.removeEventListener("pointermove", onMove);
       mm.revert();
     };
